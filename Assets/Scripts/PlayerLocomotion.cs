@@ -85,6 +85,8 @@ public class PlayerLocomotion : MonoBehaviour
     Vector3 currentGravity;
     bool isSlip = false;
 
+    public Transform aimGraphic;
+
     void Start() {
         startLightIntensity = light.GetComponent<HDAdditionalLightData>().intensity;
         worldRotationID = 3;
@@ -244,6 +246,9 @@ public class PlayerLocomotion : MonoBehaviour
                     lr.enabled = true;
                     lr_2.enabled = false;
                     lr_3.enabled = false;
+
+                    aimGraphic.transform.position = reachHit.point;
+                    aimGraphic.gameObject.SetActive(true);
                 } else {
                     lr.enabled = true;
                     lr.SetPosition(0, transform.position);
@@ -251,6 +256,9 @@ public class PlayerLocomotion : MonoBehaviour
 
                     lr_2.enabled = false;
                     lr_3.enabled = false;
+
+                    aimGraphic.transform.position = transform.position;
+                    aimGraphic.gameObject.SetActive(false);
                 }
 
                 float remainingDist = reach; //rem dist / dist = percent
@@ -506,7 +514,7 @@ public class PlayerLocomotion : MonoBehaviour
                     currentGravity = Vector3.zero;
                 } else {
                     if(sideWall && isSlip)
-                        currentGravity += Vector3.down * Time.deltaTime * 5f;
+                        currentGravity += Vector3.down * Time.deltaTime * 22.5f;
                     cc.Move((surfaceMove * 50f * Time.deltaTime) + (currentGravity * Time.deltaTime));
                 }
             }
@@ -521,6 +529,7 @@ public class PlayerLocomotion : MonoBehaviour
                 graphicsLook.transform.LookAt(lastPlayerPos);
                 graphics.transform.localScale = new Vector3(graphicsStartScale.x, graphicsStartScale.y * 6f, graphicsStartScale.z);
                 //graphics.transform.localPosition = new Vector3(0, 0.8599997f * -3f, 0);
+                aimGraphic.gameObject.SetActive(false);
 
             }
         } else {
@@ -560,6 +569,9 @@ public class PlayerLocomotion : MonoBehaviour
         }
         if (other.tag == "SummitTrig") {
             hasSummited = true;
+        }
+        if (other.tag == "FallingTrig") {
+            other.transform.parent.GetComponent<FallingHolder>().TriggerFall();
         }
         if (other.tag == "TreshTrig") {
             other.transform.parent.GetComponent<ThresholdScript>().TriggeredThresh();

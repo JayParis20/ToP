@@ -9,6 +9,7 @@ TagManager:
   - SummitTrig
   - TreshTrig
   - Rope
+  - FallingTrig
   layers:
   - Default
   - TransparentFX

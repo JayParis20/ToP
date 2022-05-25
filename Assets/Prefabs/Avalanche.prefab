@@ -26,7 +26,7 @@ Transform:
   m_GameObject: {fileID: 1104975483701073058}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 0.74757, y: 0.9444799, z: 0.74757}
   m_Children: []
   m_Father: {fileID: 1104975485020685072}
   m_RootOrder: 0
@@ -181,4 +181,5 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   vfx: {fileID: 1104975485020685073}
   lifetime: 5
+  speed: 40
   deathCol: {fileID: 1104975483701073052}
