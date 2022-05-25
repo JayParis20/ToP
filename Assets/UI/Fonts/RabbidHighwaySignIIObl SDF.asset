@@ -12,9 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 71c1514a6bd24e1e882cebbe1904ce04, type: 3}
   m_Name: RabbidHighwaySignIIObl SDF
   m_EditorClassIdentifier: 
-  hashCode: 0
+  hashCode: 1441519740
   material: {fileID: 1208568178191371230}
-  materialHashCode: 0
+  materialHashCode: -115999652
   m_Version: 1.1.0
   m_SourceFontFileGUID: 28acaa09b2174fa429f9e0fb988fe03c
   m_SourceFontFile_EditorRef: {fileID: 12800000, guid: 28acaa09b2174fa429f9e0fb988fe03c, type: 3}
@@ -2679,9 +2679,9 @@ Material:
     - _OutlineWidth: 0
     - _PerspectiveFilter: 0.875
     - _Reflectivity: 10
-    - _ScaleRatioA: 1
-    - _ScaleRatioB: 1
-    - _ScaleRatioC: 1
+    - _ScaleRatioA: 0.8333333
+    - _ScaleRatioB: 0.6770833
+    - _ScaleRatioC: 0.6770833
     - _ScaleX: 1
     - _ScaleY: 1
     - _ShaderFlags: 0

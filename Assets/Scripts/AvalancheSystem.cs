@@ -25,6 +25,7 @@ public class AvalancheSystem : MonoBehaviour
     public Transform spawns;
 
     public Transform blizzard;
+    public Transform edges;
 
     public PlayerLocomotion pl;
 
@@ -36,6 +37,7 @@ public class AvalancheSystem : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        edges.position = new Vector3(edges.position.x, pl.transform.position.y, edges.position.z);
         spawns.position = pivot.position;
 
         if (animating_1) {
@@ -72,15 +74,16 @@ public class AvalancheSystem : MonoBehaviour
             }
         }
         if (pl.gameStarted && !pl.hasSummited) {
-            blizzard.Translate(Vector3.up * 10f * Time.deltaTime);
+            //blizzard.Translate(Vector3.up * 10f * Time.deltaTime);
         }
     }
 
-    public void StartAvalanche(int id) {
+    public void StartAvalanche(int id, float lifetime, float speed) {
         if(id == 1) {
             t1 = 0;
             animating_1 = true;
             GameObject newAva = Instantiate(avalanchePrefab,spawns.GetChild(id-1).position, spawns.GetChild(id-1).rotation);
+            //newAva.GetComponent<SingleAvalanche>().lifetime = 
         }
         if (id == 2) {
             t2 = 0;

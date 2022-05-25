@@ -10,7 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1104975483701073053}
   - component: {fileID: 1104975483701073052}
-  m_Layer: 0
+  m_Layer: 2
   m_Name: DeathCol
   m_TagString: DeathTrig
   m_Icon: {fileID: 0}
@@ -181,3 +181,4 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   vfx: {fileID: 1104975485020685073}
   lifetime: 5
+  deathCol: {fileID: 1104975483701073052}

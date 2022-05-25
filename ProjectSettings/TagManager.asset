@@ -6,6 +6,9 @@ TagManager:
   tags:
   - TurnTrigger
   - DeathTrig
+  - SummitTrig
+  - TreshTrig
+  - Rope
   layers:
   - Default
   - TransparentFX
@@ -17,7 +20,7 @@ TagManager:
   - 
   - PostProcessing
   - Not in Reflection
-  - 
+  - Rope
   - 
   - 
   - 
