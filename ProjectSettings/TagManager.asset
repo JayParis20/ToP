@@ -10,6 +10,8 @@ TagManager:
   - TreshTrig
   - Rope
   - FallingTrig
+  - Slip_1
+  - Slip_2
   layers:
   - Default
   - TransparentFX

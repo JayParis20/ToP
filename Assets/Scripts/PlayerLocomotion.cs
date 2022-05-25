@@ -80,12 +80,20 @@ public class PlayerLocomotion : MonoBehaviour
     public AvalancheSystem avSystem;
     public LevelManager lm;
 
-    bool onRope = false;
+    public bool onRope = false;
 
     Vector3 currentGravity;
-    bool isSlip = false;
+    bool isSlip = true;
+    bool fastSlip = false;
+    float slipDelay = 0f;
 
     public Transform aimGraphic;
+
+    public RopeScript currentRope;
+    public RopeScript prevRope;
+    bool hasResetLastRope = true;
+    float currentRopeSpeed = 50f;
+    float ropeDelay = 0;
 
     void Start() {
         startLightIntensity = light.GetComponent<HDAdditionalLightData>().intensity;
@@ -122,15 +130,37 @@ public class PlayerLocomotion : MonoBehaviour
             rotDelay -= Time.deltaTime;
 
         if (cc != null) {
-            if (rotDelay <= 0 && cc.enabled == false) {
+            if (!onRope) {
+                if (rotDelay <= 0 && cc.enabled == false) {
 
-                cc.enabled = true;
-            } else {
-                if (cc.enabled == false) {
-                    transform.position = rotDelayPos;
+                    cc.enabled = true;
+                } else {
+                    if (cc.enabled == false) {
+                        transform.position = rotDelayPos;
+                    }
                 }
+            } else {
+                cc.enabled = !hasResetLastRope;
             }
         }
+
+        if (onRope) {
+            ropeDelay = 0.2f;
+        } else {
+            if(ropeDelay > 0)
+                ropeDelay -= Time.deltaTime;
+        }
+
+        if (onRope) {
+            isSlip = false;
+        } else {
+            if (slipDelay > 0)
+                slipDelay -= Time.deltaTime;
+            else {
+                isSlip = false;
+            }
+        }
+        
 
         Quaternion targetRot = Quaternion.identity;
         switch (worldRotationID) {
@@ -359,8 +389,9 @@ public class PlayerLocomotion : MonoBehaviour
                         }
 
                         surfaceNormal.rotation = Quaternion.LookRotation(hit.normal, Camera.main.transform.up);
-
-                        onRope = false;
+                        if (onRope) {
+                            onRope = false;
+                        }
 
                         if (hit.collider.tag == "TurnTrigger") {
                             //Debug.LogError("TRIG");
@@ -489,6 +520,22 @@ public class PlayerLocomotion : MonoBehaviour
         if (Vector3.Distance(transform.position, targetPos.position) < 0.5f || (overshoot && !hasConnected)) {
             if (!hasConnected) {
                 transform.position = targetPos.position;
+
+                if (!onRope) {
+                    hasResetLastRope = false;
+                }
+                if (!hasResetLastRope) {
+                    if (prevRope != null) {//ROPE----------------------
+                        if (prevRope.ropeEnabled == false) {
+                            prevRope.EnableRope();
+                        }
+                        
+                    }
+                    prevRope = currentRope;
+                    currentRope = null;
+                    hasResetLastRope = true;
+                }
+                //toConnectVel = Vector3.zero;
                 hasConnected = true;
             }
         }
@@ -498,7 +545,7 @@ public class PlayerLocomotion : MonoBehaviour
                 lastGroundedPos = transform.position;
                 //Debug.Log("Grounded");
             } else {
-                if (hasConnected) {
+                if (hasConnected && !onRope && ropeDelay <= 0) {
                     cc.enabled = false;
                     transform.position = lastGroundedPos;
                     cc.enabled = true;
@@ -506,15 +553,42 @@ public class PlayerLocomotion : MonoBehaviour
                 }
             }
             if (onRope) {
-                transform.position = targetPos.position;
+                //Debug.Log("OR");
+                transform.position = Vector3.MoveTowards(transform.position, targetPos.position, Time.deltaTime * currentRopeSpeed);
+
+                if(Vector3.Distance(transform.position, targetPos.position) < 0.5f) {
+
+                    if (!hasResetLastRope) {
+                        if (prevRope != null) {//ROPE----------------------
+                            if (prevRope.ropeEnabled == false) {
+                                prevRope.EnableRope();
+                            }
+                            
+                        }
+                        prevRope = currentRope;
+                        currentRope = null;
+                        hasResetLastRope = true;
+                    }
+                    //cc.enabled = true;
+                    
+                    onRope = false;
+                    lastGroundedPos = targetPos.transform.position;
+                    //toConnectVel = Vector3.zero;
+                    hasConnected = true;
+                    cc.Move(Vector3.up * Time.deltaTime);
+                }
+                //if (cc.enabled)
+                //    cc.Move(Vector3.one * 0.01f);
             } else {
                 if (!hasConnected) {
                     //cc.Move((targetPos.position - transform.position).normalized * 137f * Time.deltaTime);
+                    if (onRope)
+                        toConnectVel = Vector3.zero;
                     cc.Move(toConnectVel * 137f * Time.deltaTime);
                     currentGravity = Vector3.zero;
                 } else {
                     if(sideWall && isSlip)
-                        currentGravity += Vector3.down * Time.deltaTime * 22.5f;
+                        currentGravity += Vector3.down * Time.deltaTime * (fastSlip ? 22.5f : 11.25f);
                     cc.Move((surfaceMove * 50f * Time.deltaTime) + (currentGravity * Time.deltaTime));
                 }
             }
@@ -527,7 +601,7 @@ public class PlayerLocomotion : MonoBehaviour
             } else {
                 graphics.transform.localEulerAngles = new Vector3(0, -90, -90);
                 graphicsLook.transform.LookAt(lastPlayerPos);
-                graphics.transform.localScale = new Vector3(graphicsStartScale.x, graphicsStartScale.y * 6f, graphicsStartScale.z);
+                graphics.transform.localScale = new Vector3(graphicsStartScale.x, graphicsStartScale.y * (onRope ? 2f : 6f), graphicsStartScale.z);
                 //graphics.transform.localPosition = new Vector3(0, 0.8599997f * -3f, 0);
                 aimGraphic.gameObject.SetActive(false);
 
@@ -549,9 +623,61 @@ public class PlayerLocomotion : MonoBehaviour
             nextLandIsRotate = false;
         }
 
-        
 
+        //Debug.Log(toConnectVel);
+        //if (ropeDelay > 0)
+        //    toConnectVel = Vector3.zero;
         
+    }
+
+    public void SetUpRopeMovement(Collider other) {
+        if (!onRope) {
+            Debug.Log("SetUpRope");
+            //hasConnected = true;
+            Vector3 point = other.transform.parent.GetComponent<RopeScript>().B.position;
+            targetPos.position = point + (transform.position - point).normalized * 1.02f;
+            targetPos.LookAt(transform.position);
+            //toConnectVel = (point - transform.position).normalized;
+            toConnectVel = Vector3.zero;
+            hasConnected = false;
+            lastGroundedPos = targetPos.position;
+            //rigi.isKinematic = true;
+            light.GetComponent<HDAdditionalLightData>().intensity = startLightIntensity * 55f;
+
+            surfaceNormal.rotation = Quaternion.LookRotation(Vector3.down, Camera.main.transform.up);
+            cc.enabled = false;
+
+            other.transform.parent.GetComponent<RopeScript>().DisableRope();
+            currentRope = other.transform.parent.GetComponent<RopeScript>();
+            onRope = true;
+            hasResetLastRope = false;
+
+            if (other.transform.parent.GetComponent<RopeScript>().speedRope)
+                currentRopeSpeed = 25f * 2f;
+            else
+                currentRopeSpeed = 25f;
+
+            //Debug.LogError("Stop");
+        }
+        /*
+        sideWall = (hit.point + hit.normal).y == hit.point.y;
+        switch (worldRotationID) {
+            case 0:
+                surfaceNormal.GetChild(0).localEulerAngles = new Vector3(0, 0, sideWall ? 0 : -90);
+                break;
+            case 1:
+                surfaceNormal.GetChild(0).localEulerAngles = new Vector3(0, 0, 0);
+                break;
+            case 2:
+                surfaceNormal.GetChild(0).localEulerAngles = new Vector3(0, 0, sideWall ? 0 : -90);
+                break;
+            case 3:
+                surfaceNormal.GetChild(0).localEulerAngles = new Vector3(0, 0, 0);
+                break;
+        }
+        */
+
+        //surfaceNormal.rotation = Quaternion.LookRotation(hit.normal, Camera.main.transform.up);
     }
 
     private void FixedUpdate() {
@@ -584,42 +710,7 @@ public class PlayerLocomotion : MonoBehaviour
             this.enabled = false;
             //SceneManager.LoadScene(0);
         }
-        if (other.tag == "Rope") {
-            Debug.Log("RP");
-            if (!onRope) {
-                //hasConnected = true;
-                Vector3 point = other.transform.parent.GetComponent<RopeScript>().B.position;
-                targetPos.position = point + (transform.position - point).normalized * 1.02f;
-                targetPos.LookAt(transform.position);
-                toConnectVel = (point - transform.position).normalized;
-                hasConnected = false;
-                lastGroundedPos = targetPos.position;
-                //rigi.isKinematic = true;
-                light.GetComponent<HDAdditionalLightData>().intensity = startLightIntensity * 55f;
-                cc.enabled = false;
-                onRope = true;
-            }
-            /*
-            sideWall = (hit.point + hit.normal).y == hit.point.y;
-            switch (worldRotationID) {
-                case 0:
-                    surfaceNormal.GetChild(0).localEulerAngles = new Vector3(0, 0, sideWall ? 0 : -90);
-                    break;
-                case 1:
-                    surfaceNormal.GetChild(0).localEulerAngles = new Vector3(0, 0, 0);
-                    break;
-                case 2:
-                    surfaceNormal.GetChild(0).localEulerAngles = new Vector3(0, 0, sideWall ? 0 : -90);
-                    break;
-                case 3:
-                    surfaceNormal.GetChild(0).localEulerAngles = new Vector3(0, 0, 0);
-                    break;
-            }
-            */
-
-            //surfaceNormal.rotation = Quaternion.LookRotation(hit.normal, Camera.main.transform.up);
-
-        }
+        //Stay
         if (other.GetComponent<AvalancheTrigger>()) {
             AvalancheTrigger avTrig = other.GetComponent<AvalancheTrigger>();
             if (avTrig.isRandom) {
@@ -632,6 +723,25 @@ public class PlayerLocomotion : MonoBehaviour
                 if (avTrig.right)
                     avSystem.StartAvalanche(3,avTrig.lifetime,avTrig.speed);
             }
+        }
+    }
+
+    private void OnTriggerStay(Collider other) {
+        if (other.tag == "Rope") {
+            Debug.Log("RP");
+            SetUpRopeMovement(other);
+
+        }
+
+        if (other.tag == "Slip_1") {
+            isSlip = true;
+            fastSlip = false;
+            slipDelay = 0.2f;
+        }
+        if (other.tag == "Slip_2") {
+            isSlip = true;
+            fastSlip = true;
+            slipDelay = 0.2f;
         }
     }
 

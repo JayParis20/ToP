@@ -103,5 +103,9 @@ public class AvalancheSystem : MonoBehaviour
         t2 = 3.1f;
         //animating_2 = false;
         t3 = 3.1f;
+
+        warning_1.SetActive(false);
+        warning_2.SetActive(false);
+        warning_3.SetActive(false);
     }
 }
