@@ -221,7 +221,7 @@ public class PlayerLocomotion : MonoBehaviour
                         break;
                 }
 
-                float reach = 50f;//35f
+                float reach = 22.5f;//35f
                 lr.widthMultiplier = 0.75f * (hasConnected ? 1f : 0f);
                 lr_2.widthMultiplier = 0.5f * (hasConnected ? 1f : 0f);
                 lr_3.widthMultiplier = 0.25f * (hasConnected ? 1f : 0f);

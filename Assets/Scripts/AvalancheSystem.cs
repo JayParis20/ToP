@@ -74,7 +74,7 @@ public class AvalancheSystem : MonoBehaviour
             }
         }
         if (pl.gameStarted && !pl.hasSummited) {
-            //blizzard.Translate(Vector3.up * 10f * Time.deltaTime);
+            blizzard.Translate(Vector3.up * 10f * Time.deltaTime);
         }
     }
 
