@@ -74,7 +74,27 @@ public class AvalancheSystem : MonoBehaviour
             }
         }
         if (pl.gameStarted && !pl.hasSummited) {
-            blizzard.Translate(Vector3.up * 10f * Time.deltaTime);
+            float blSpeed = 10f;
+            float difMod = ((GetComponent<LevelManager>().levelID + 1) * 0.1f);
+            switch (RuntimeVariables.difficulty) {
+                case 1:
+                    blSpeed = 2.55f + difMod;
+                    break;
+                case 2:
+                    blSpeed = 5f + difMod;
+                    break;
+                case 3:
+                    blSpeed = 7.5f + difMod;
+                    break;
+            }
+
+            if(GetComponent<LevelManager>().levelID == 0) {
+                blizzard.transform.position = new Vector3(0, -1000f, 0);
+            } else {
+                blizzard.Translate(Vector3.up * blSpeed * Time.deltaTime);
+
+            }
+
         }
     }
 

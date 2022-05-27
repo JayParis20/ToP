@@ -34,6 +34,7 @@ public class PlayerLocomotion : MonoBehaviour
 
     public bool hasSummited = false;
     public bool gameStarted = false;
+    float startDelay = 1.5f;
 
     public Transform summitCam;
     public Transform normalCam;
@@ -95,7 +96,15 @@ public class PlayerLocomotion : MonoBehaviour
     float currentRopeSpeed = 50f;
     float ropeDelay = 0;
 
+    bool paused = false;
+    public GameObject pauseScreen;
+
+    public float summitDelay = 3.5f;
+
+    bool backToNormalSurface = true;
+
     void Start() {
+        //PlayerPrefs.SetFloat("CompletedLevel", 1);
         startLightIntensity = light.GetComponent<HDAdditionalLightData>().intensity;
         worldRotationID = 3;
         targetPos.position = transform.position;
@@ -123,6 +132,38 @@ public class PlayerLocomotion : MonoBehaviour
     }
 
     void Update() {
+
+        if (!gameStarted) {
+            startDelay -= Time.deltaTime;
+            if(startDelay <= 0) {
+                worldRotationID = 0;
+                gameStarted = true; ;
+            }
+        }
+
+        if(currentRope != null) {
+            //currentRope.StartRefresh();
+            //currentRope.DisableRope();
+        } else {
+            
+        }
+
+        if (Gamepad.current.selectButton.wasPressedThisFrame) {
+            summitDelay = 0;
+        }
+
+        if (Gamepad.current.startButton.wasPressedThisFrame && gameStarted)
+            paused = !paused;
+        if ((hasSummited && !gameStarted) || summitDelay <= 0)
+            paused = false;
+
+        if (paused)
+            Time.timeScale = 0.0f;
+        else
+            Time.timeScale = 1;
+        pauseScreen.SetActive(paused);
+
+
         if(Vector3.Distance(transform.position, lastPlayerPos) > 0.15f)
             lastPlayerPos = transform.position;
 
@@ -221,10 +262,12 @@ public class PlayerLocomotion : MonoBehaviour
                         break;
                 }
 
-                float reach = 22.5f;//35f
-                lr.widthMultiplier = 0.75f * (hasConnected ? 1f : 0f);
-                lr_2.widthMultiplier = 0.5f * (hasConnected ? 1f : 0f);
-                lr_3.widthMultiplier = 0.25f * (hasConnected ? 1f : 0f);
+                float reach = 25.5f;//35f
+                bool showTraj = ((hasConnected && !hasSummited) || onRope) && !paused;
+
+                lr.widthMultiplier = 0.75f * (showTraj ? 1f : 0f);
+                lr_2.widthMultiplier = 0.5f * (showTraj ? 1f : 0f);
+                lr_3.widthMultiplier = 0.25f * (showTraj ? 1f : 0f);
                 RaycastHit reachHit;
                 RaycastHit reachHit_2;
                 RaycastHit reachHit_3;
@@ -278,7 +321,7 @@ public class PlayerLocomotion : MonoBehaviour
                     lr_3.enabled = false;
 
                     aimGraphic.transform.position = reachHit.point;
-                    aimGraphic.gameObject.SetActive(true);
+                    aimGraphic.gameObject.SetActive(!paused);
                 } else {
                     lr.enabled = true;
                     lr.SetPosition(0, transform.position);
@@ -358,7 +401,7 @@ public class PlayerLocomotion : MonoBehaviour
                 //Debug.Log(new Vector3(scn1, scn2, scn3));
                 //Debug.Log(remainingDist);
 
-                if (Gamepad.current.rightShoulder.wasReleasedThisFrame) {
+                if (Gamepad.current.rightShoulder.wasReleasedThisFrame && !paused) {
                     //Debug.Log("MV");
 
                     RaycastHit hit;
@@ -391,6 +434,15 @@ public class PlayerLocomotion : MonoBehaviour
                         surfaceNormal.rotation = Quaternion.LookRotation(hit.normal, Camera.main.transform.up);
                         if (onRope) {
                             onRope = false;
+                            //currentRope = null;
+                        }
+
+                        if(hit.collider.tag != "Rope") {
+                            onRope = false;
+                            //hasResetLastRope = false;
+                            backToNormalSurface = true;
+                        } else {
+                            backToNormalSurface = false;    
                         }
 
                         if (hit.collider.tag == "TurnTrigger") {
@@ -504,7 +556,7 @@ public class PlayerLocomotion : MonoBehaviour
             titleUI.localPosition = Vector3.Lerp(titleUI.localPosition, new Vector3(450f, 0, 0), Time.deltaTime * 5f);
         } else {
             camHolder.localPosition = Vector3.Lerp(camHolder.localPosition, new Vector3(21.8f,0,0), Time.deltaTime * 5f);
-            if (Gamepad.current.startButton.wasPressedThisFrame || Gamepad.current.buttonSouth.wasPressedThisFrame) {
+            if (Gamepad.current.startButton.wasReleasedThisFrame || Gamepad.current.buttonSouth.wasPressedThisFrame) {
                 worldRotationID = 0;
                 gameStarted = true;
             }
@@ -514,6 +566,18 @@ public class PlayerLocomotion : MonoBehaviour
         //transform.position = Vector3.MoveTowards(transform.position, targetPos.position, Time.deltaTime * 185f);
         //rigi.velocity = Vector3.zero;
         //rigi.MovePosition(Vector3.MoveTowards(transform.position, targetPos.position, Time.deltaTime * 185f));
+
+        if (hasConnected && currentRope != null) {
+            if (backToNormalSurface) {
+                currentRope.EnableRope();
+                Debug.LogError("BTNR");
+            }
+            Debug.Log("HasConnected");
+        }
+
+        if (onRope) {
+            Debug.Log("ONROPE");
+        }
 
         bool overshoot = Vector3.Distance(transform.position, targetPos.GetChild(0).position) < Vector3.Distance(targetPos.position, targetPos.GetChild(0).position);
 
@@ -527,6 +591,7 @@ public class PlayerLocomotion : MonoBehaviour
                 if (!hasResetLastRope) {
                     if (prevRope != null) {//ROPE----------------------
                         if (prevRope.ropeEnabled == false) {
+                            
                             prevRope.EnableRope();
                         }
                         
@@ -590,6 +655,12 @@ public class PlayerLocomotion : MonoBehaviour
                     if(sideWall && isSlip)
                         currentGravity += Vector3.down * Time.deltaTime * (fastSlip ? 22.5f : 11.25f);
                     cc.Move((surfaceMove * 50f * Time.deltaTime) + (currentGravity * Time.deltaTime));
+                    if (currentRope != null) {
+                        //currentRope.EnableRope();
+                    }
+                    if (prevRope != null) {
+                        //prevRope.EnableRope();
+                    }
                 }
             }
 
@@ -610,8 +681,11 @@ public class PlayerLocomotion : MonoBehaviour
             targetPos.position = GameObject.Find("_SummitPoint").transform.position;
             transform.position = GameObject.Find("_SummitPoint").transform.position;
             //graphics.transform.LookAt(Camera.main.transform.position);
-            graphics.transform.rotation = pivot.rotation;
-            Debug.Log("Summited");
+            graphics.transform.rotation = summitCam.rotation;
+            graphics.transform.localScale = graphicsStartScale;
+            aimGraphic.transform.localScale = Vector3.one * 0.001f;
+            summitDelay -= Time.deltaTime;
+            //Debug.Log("Summited");
         }
 
         graphics.material.SetFloat("_Offset", Mathf.Lerp(graphics.material.GetFloat("_Offset"), hasConnected ? 1f : -5f, Time.deltaTime * (hasConnected ? 5f : 29f)));
@@ -634,8 +708,27 @@ public class PlayerLocomotion : MonoBehaviour
         if (!onRope) {
             Debug.Log("SetUpRope");
             //hasConnected = true;
+            Vector3 tempPoint = other.transform.parent.GetComponent<RopeScript>().B.position;
             Vector3 point = other.transform.parent.GetComponent<RopeScript>().B.position;
+            
+            switch (worldRotationID) {
+                case 0:
+                    point = new Vector3(tempPoint.x, tempPoint.y, transform.position.z);
+                    break;
+                case 1:
+                    point = new Vector3(transform.position.x, tempPoint.y, tempPoint.z);
+                    break;
+                case 2:
+                    point = new Vector3(tempPoint.x, tempPoint.y, transform.position.z);
+                    break;
+                case 3:
+                    point = new Vector3(transform.position.x, tempPoint.y, tempPoint.z);
+                    break;
+            }
+            
+
             targetPos.position = point + (transform.position - point).normalized * 1.02f;
+
             targetPos.LookAt(transform.position);
             //toConnectVel = (point - transform.position).normalized;
             toConnectVel = Vector3.zero;
@@ -672,6 +765,7 @@ public class PlayerLocomotion : MonoBehaviour
                 surfaceNormal.GetChild(0).localEulerAngles = new Vector3(0, 0, sideWall ? 0 : -90);
                 break;
             case 3:
+            case 3:
                 surfaceNormal.GetChild(0).localEulerAngles = new Vector3(0, 0, 0);
                 break;
         }
@@ -689,12 +783,18 @@ public class PlayerLocomotion : MonoBehaviour
     }
 
     private void OnTriggerEnter(Collider other) {
+        
         if(other.tag == "TurnTrigger") {
             //Debug.Log("TRIGGGG");
             RotateLevel(other);
+            lm.FirstTrigger();
         }
         if (other.tag == "SummitTrig") {
             hasSummited = true;
+            //PlayerPrefs.SetFloat("CompletedLevel", PlayerPrefs.GetFloat("CompletedLevel") + 1);
+            if((lm.levelID+1) == PlayerPrefs.GetFloat("CompletedLevel"))
+                PlayerPrefs.SetFloat("CompletedLevel", (lm.levelID+1) + 1);
+            Debug.Log(PlayerPrefs.GetFloat("CompletedLevel"));
         }
         if (other.tag == "FallingTrig") {
             other.transform.parent.GetComponent<FallingHolder>().TriggerFall();
@@ -723,6 +823,10 @@ public class PlayerLocomotion : MonoBehaviour
                 if (avTrig.right)
                     avSystem.StartAvalanche(3,avTrig.lifetime,avTrig.speed);
             }
+        }
+        if(other.tag == "LevelGen") {
+            lm.GenerateSegment();
+            other.transform.position += new Vector3(0, 188.4f, 0);
         }
     }
 
@@ -771,12 +875,32 @@ public class PlayerLocomotion : MonoBehaviour
                 break;
         }
         */
+
         transform.position = new Vector3(other.transform.GetChild(0).position.x, transform.position.y, other.transform.GetChild(0).position.z);
         targetPos.position = new Vector3(other.transform.GetChild(0).position.x, transform.position.y, other.transform.GetChild(0).position.z);
         rotDelayPos = new Vector3(other.transform.GetChild(0).position.x, transform.position.y, other.transform.GetChild(0).position.z);
         cc.enabled = false;
         //Debug.LogError(transform.position.x.ToString() + "*" + transform.position.z.ToString());
         //Debug.LogError(other.transform.GetChild(0).position.x.ToString() + "*" + other.transform.GetChild(0).position.z.ToString());
+
+        float newY = transform.position.y;
+        RaycastHit checkHit;
+        if (Physics.Raycast(transform.position, Vector3.down, out checkHit, 25f)) {
+            newY = checkHit.point.y;
+            //Debug.Log("NewGround");
+            //GameObject newGroundObj = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            //newGroundObj.transform.position = checkHit.point;
+        }
+
+        Vector3 gp = new Vector3(transform.position.x, newY, transform.position.z) + (Vector3.up * 1.1f);
+
+        transform.position = gp;
+        targetPos.position = gp;
+        lastGroundedPos = gp;
+        rotDelayPos = gp;
+        sideWall = false;
+        surfaceNormal.eulerAngles = new Vector3(-90,0,0);
+
 
         tm.RefreshTriggers(true);
         stillInTrigger = true;

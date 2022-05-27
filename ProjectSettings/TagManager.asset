@@ -12,6 +12,7 @@ TagManager:
   - FallingTrig
   - Slip_1
   - Slip_2
+  - LevelGen
   layers:
   - Default
   - TransparentFX

@@ -14,6 +14,8 @@ public class SingleAvalanche : MonoBehaviour
 
     void Start()
     {
+        vfx.SetVector4("c1", GameObject.Find("_GLOBAL").GetComponent<LevelManager>().blizzardColours[GameObject.Find("_GLOBAL").GetComponent<LevelManager>().levelID]);
+        vfx.SetVector4("c2", GameObject.Find("_GLOBAL").GetComponent<LevelManager>().blizzardColours[GameObject.Find("_GLOBAL").GetComponent<LevelManager>().levelID] * 0.8f);
         
     }
 
